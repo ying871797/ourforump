@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+
+<script>
+    async function sha256(message) {
+        const encoder = new TextEncoder();
+        const data = encoder.encode(message);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+        console.log(hashBuffer)
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        const hashHex = hashArray.map(byte => byte.toString(16).padStart(2, '0')).join('');
+        return hashHex;
+    }
+
+    function test(){
+        cry
+    }
+
+    // 要计算哈希的字符串
+    const inputString = 'Hello, SHA-256!';
+    let a = '';
+
+    // 计算 SHA-256 哈希值
+    sha256(inputString).then(hashValue => {
+        console.log('SHA-256 哈希值:', hashValue);
+        a=hashValue
+        console.log(a)
+    });
+    console.log(a)
+</script>
+</body>
+</html>
