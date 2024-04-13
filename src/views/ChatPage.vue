@@ -38,7 +38,7 @@ let user = ref({
 let upload = ref()
 
 // 定义变量
-let res = ref([])
+let messageList = ref([])
 let pass = ref('')
 let choose = ref(false)
 // 公告密码
@@ -49,6 +49,7 @@ let get_arg = ref({
   type: 0,
   chatroom: page_name.value,
 })
+let ip_blacklist = ref([])
 
 // 进入时执行
 onMounted(() => {
@@ -76,7 +77,8 @@ async function start_1() {
 
 function start() {
   get_notice_pass()
-  get_data(2)
+  get_ip_blacklist()
+  get_message(2)
   get_ip_address()
   window.addEventListener('scroll', get_more);
 }
@@ -103,9 +105,15 @@ async function get_ip_address() {
       })
 }
 
-function get_data(type) {
+function get_ip_blacklist() {
+  axios.post("/server/get_all", {'table': 'ipblacklist'}).then(response => {
+    ip_blacklist.value = ref(response.data).value
+  })
+}
+
+function get_message(type) {
   get_arg.value.type = type
-  axios.post("/server/get_all_data", get_arg.value).then(response => {
+  axios.post("/server/get_message", get_arg.value).then(response => {
     // res.value = ref(response["data"]).value
     // 获取数据并插入res中
     // 图片数据处理，将图片数据分割为数组
@@ -113,10 +121,10 @@ function get_data(type) {
       response.data[i][4] = String(response.data[i][4]).split(',');
     }
     if (type === 2) {
-      res.value = ref(response.data).value
+      messageList.value = ref(response.data).value
       return
     }
-    res.value = res.value.concat(ref(response.data).value)
+    messageList.value = messageList.value.concat(ref(response.data).value)
   })
 }
 
@@ -132,9 +140,9 @@ function get_notice() {
     for (let i = 0; i < response.data.length; i++) {
       response.data[i][4] = String(response.data[i][4]).split(',');
     }
-    res.value = ref(response.data).value
+    messageList.value = ref(response.data).value
     // 反转数组，在最上层显示最新数据
-    res.value.reverse()
+    messageList.value.reverse()
   })
 }
 
@@ -142,9 +150,9 @@ function get_notice() {
 function uploadContractFun(file) {
   //项目要求是大于1MB的图片进行压缩，可根据项目情况自行判断
   if (file.size > 1024 * 1024) {
-    console.log('压缩前', file) // 压缩到400KB
+    // console.log('压缩前', file) // 压缩到400KB
     imageConversion.compressAccurately(file.raw, 400).then(res => {
-      console.log('压缩后', res) // 压缩后是一个blob对象
+      // console.log('压缩后', res) // 压缩后是一个blob对象
       return res
     })
   }
@@ -179,6 +187,7 @@ async function get_pass(passtype, pass) {
 }
 */
 
+// 提交方法
 async function submit() {
   if (CryptoJS.SHA256(pass.value).toString() === notice_pass.value) {
     user.value.sender = '公告'
@@ -195,10 +204,17 @@ async function submit() {
       return;
     }
   }
+  // 判断ip是否在黑名单
+  for (let item of ip_blacklist.value) {
+    if (item[0] === user.value.ip) {
+      alert('你已被拉黑，请联系管理员')
+      return;
+    }
+  }
   // 数据验证成功，发送消息
   user.value.content = user.value.content.replace("\\n", "\n")
   axios.post("/server/insert_data", user.value).then(response => {
-    if (response['data'] === 'ok') {
+    if (response.data === 'ok') {
       alert('发送成功');
       // 消息内容清空
       user.value.content = ''
@@ -206,10 +222,10 @@ async function submit() {
       user.value.type = 0
       user.value.imgSrc = []
       upload.value.clearFiles()
-      get_data(2)
+      get_message(2)
     } else {
       alert('发送失败')
-      get_data(2)
+      get_message(2)
     }
   })
 }
@@ -221,11 +237,11 @@ function choose_event() {
     return
   }
   window.addEventListener('scroll', get_more);
-  get_data(2)
+  get_message(2)
 }
 
 // 获取更多
-function get_more() {
+async function get_more() {
   // 获取文档内容的高度
   let documentHeight = document.body.scrollHeight || document.documentElement.scrollHeight;
   // 获取当前视窗的高度
@@ -234,11 +250,10 @@ function get_more() {
   let scrollTop = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop;
   // 判断是否滚动到了页面底部
   if (documentHeight - windowHeight - scrollTop - 1 <= 0) {
-    get_data(1)
+    await get_message(1)
     // limit增加
     get_arg.value.get_count += 10
-    // 在这里执行滚动到底部时的事件
-    console.log("已经滚动到底部！");
+    console.log('滑动到底部')
   }
 }
 
@@ -311,7 +326,7 @@ function get_more() {
     <!--  主体-->
     <div id="wrap">
       <!--    消息展示-->
-      <div class="item" v-for="(item,index) in res" :key="index">
+      <div class="item" v-for="(item,index) in messageList" :key="index">
         <span class="sender">{{ item[2] }}:</span>
         <span class="ip">ip: {{ item[7] }}</span>
         <p v-if="item[6]===1" style="color:red" class="content">{{ item[3] }}</p>
@@ -340,21 +355,23 @@ function get_more() {
   width: auto;
   height: auto;
   display: grid;
-  grid-template-columns: repeat( auto-fit, minmax(20em, 1fr) );
+  grid-template-columns: repeat( auto-fit, minmax(20rem, 1fr) );
   grid-auto-flow: row dense;
 }
 
 #home_tip {
-  margin: 1em;
+  margin: 1rem;
 }
 
 .panel {
+  width: 80vw;
+  margin: 0 auto;
   height: auto;
   /*grid-row: 1 / 3; //grid-column: 1 / 3;*/
 }
 
 button {
-  margin: 0.5em;
+  margin: 0.5rem;
 }
 
 .input {
@@ -362,42 +379,42 @@ button {
 }
 
 textarea {
-  margin: 0.5em;
-  padding: 0.7em;
+  margin: 0.5rem;
+  padding: 0.7rem;
   width: 95%;
-  height: 10em;
+  height: 10rem;
   resize: none;
   display: block;
-  border-radius: 0.6em;
-  box-shadow: 0.1em 0.1em 0.3em grey;
+  border-radius: 0.6rem;
+  box-shadow: 0.1rem 0.1rem 0.3rem grey;
 }
 
 .item {
-  margin: 1em;
-  border-radius: 0.6em;
-  box-shadow: 0.1em 0.1em 0.3em grey;
+  margin: 1rem;
+  border-radius: 0.6rem;
+  box-shadow: 0.1rem 0.1rem 0.3rem grey;
   position: relative;
 }
 
 .msgImg {
   width: 95%;
   height: auto;
-  margin: 0.5em;
+  margin: 0.5rem;
 }
 
 .item .sender {
-  padding: 0.5em;
+  padding: 0.5rem;
   color: grey;
-  font-size: 0.7em;
+  font-size: 0.8rem;
   position: absolute;
   left: 0;
-  top: -0.2em;
+  top: -0.2rem;
 }
 
 .item .ip {
-  padding: 0.5em;
+  padding: 0.5rem;
   color: grey;
-  font-size: 0.7em;
+  font-size: 0.8rem;
   position: absolute;
   right: 0;
   top: -0.2em;
@@ -405,31 +422,31 @@ textarea {
 
 .item .content {
   text-align: left;
-  margin-left: 1.5em;
-  margin-top: 1.5em;
+  margin-left: 1.5rem;
+  margin-top: 1.5rem;
   white-space: pre-line;
   overflow: auto;
-  padding: 0.1em;
+  padding: 0.1rem;
 }
 
 .item .otherInfo {
-  margin-top: 0.3em;
+  margin-top: 2rem;
 }
 
 .item .otherInfo .small {
   color: grey;
-  font-size: 0.5em;
+  font-size: 0.8rem;
 }
 
 .item .address {
   position: absolute;
-  bottom: 2.5em;
-  right: 0.5em;
+  bottom: 2rem;
+  right: 0.5rem;
 }
 
 .item .date {
   position: absolute;
-  bottom: 0.5em;
-  right: 0.5em;
+  bottom: 0.5rem;
+  right: 0.5rem;
 }
 </style>
