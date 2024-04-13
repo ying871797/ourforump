@@ -1,11 +1,18 @@
 <script setup>
-import {ref} from 'vue'
+import {onMounted, ref} from 'vue'
 import axios from "axios";
+import {store} from "xijs";
+import CryptoJS from "crypto-js";
+import {useRouter} from "vue-router";
 
 let messageList = ref([])
 let messageShow = ref([])
 let ip = ref('')
 let activeIndex = ref(-1);
+let enterpass = ref('')
+
+const route = useRouter();
+
 
 // limit
 let get_arg = ref({
@@ -13,10 +20,25 @@ let get_arg = ref({
   type: 3,
 })
 
-start()
+onMounted(() => {
+  start()
+})
 
 async function start() {
+  await get_enter_pass()
   await fetchMessageList()
+  if (store.get('admin').value !== 'ok') {
+    let input = prompt("请输入进入密码：")
+    console.log(enterpass.value)
+    console.log(CryptoJS.SHA256(input).toString() === enterpass.value)
+    if (CryptoJS.SHA256(input).toString() === enterpass.value) {
+      // 设置进入密码localStorage，三天失效
+      await store.set('admin', 'ok', Date.now() + 1000 * 60 * 60 * 24 * 3)
+    } else {
+      alert('即将跳转主页')
+      await route.push('/')
+    }
+  }
   document.getElementById('message').addEventListener('scroll', get_more)
 }
 
@@ -64,12 +86,18 @@ async function handleDelete(index) {
   activeIndex.value = -1;
 }
 
+function get_enter_pass() {
+  axios.post("/server/get_pass", {passtype: 'admin_pass'}).then(response => {
+    enterpass.value = ref(response.data[0][1]).value
+    console.log(enterpass.value)
+  })
+}
+
 async function fetchMessageList() {
   await axios.post("/server/get_message", get_arg.value).then(response => {
     // res.value = ref(response["data"]).value
     // 获取数据并插入res中
     // 图片数据处理，将图片数据分割为数组
-    console.log(response.data.length)
     for (let i = 0; i < response.data.length; i++) {
       messageShow.value.push({
         id: response.data[i][0],
