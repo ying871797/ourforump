@@ -33,7 +33,7 @@ async function start() {
     console.log(CryptoJS.SHA256(input).toString() === enterpass.value)
     if (CryptoJS.SHA256(input).toString() === enterpass.value) {
       // 设置进入密码localStorage，三天失效
-      await store.set('admin', 'ok', Date.now() + 1000 * 60 * 60 * 24 * 3)
+      store.set('admin', 'ok', Date.now() + 1000 * 60 * 60 * 24 * 3)
     } else {
       alert('即将跳转主页')
       await route.push('/')
@@ -86,10 +86,9 @@ async function handleDelete(index) {
   activeIndex.value = -1;
 }
 
-function get_enter_pass() {
-  axios.post("/server/get_pass", {passtype: 'admin_pass'}).then(response => {
+async function get_enter_pass() {
+  await axios.post("/server/get_pass", {passtype: 'admin_pass'}).then(response => {
     enterpass.value = ref(response.data[0][1]).value
-    console.log(enterpass.value)
   })
 }
 
@@ -123,7 +122,6 @@ async function get_more() {
   // 判断是否滚动到了页面底部
   if (scrollTop + clientHeight + 1 >= scrollHeight) {
     get_arg.value.type = 4
-    console.log('ok')
     await fetchMessageList()
     // limit增加
     get_arg.value.get_count += 10
