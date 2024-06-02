@@ -1,5 +1,5 @@
 <script setup>
-import {nextTick, onMounted, onUnmounted, ref, toRefs} from 'vue'
+import {onMounted, onUnmounted, ref} from 'vue'
 import axios from "axios";
 import {useRouter} from "vue-router";
 // localStorage设置失效时间
@@ -12,20 +12,15 @@ const route = useRouter();
 // 获取路由参数
 const props = defineProps({
   page_name: String,
-  database: String,
   type_: Number,
   enterpass: String,
   sendpass: String
 })
-const {page_name} = toRefs(props)
-const {type_} = toRefs(props)
-const {enterpass} = toRefs(props)
-const {sendpass} = toRefs(props)
 
 // submit所用数据
 let user = ref({
   msg_id: 1,
-  chatroom: page_name.value,
+  chatroom: props.page_name,
   sender: "",
   content: "",
   imgSrc: [],
@@ -50,17 +45,16 @@ let notice_pass = ref('')
 let get_arg = ref({
   get_count: 10,
   type: 0,
-  chatroom: page_name.value,
+  chatroom: props.page_name,
 })
 let get_c_arg = ref({
   get_count: 10,
   msg_id: 1,
   type: 0,
-  chatroom: page_name.value,
+  chatroom: props.page_name,
 })
 let ip_blacklist = ref([])
-let comment_show = ref(null)
-
+ref(null);
 // 进入时执行
 onMounted(() => {
   start_1()
@@ -68,14 +62,14 @@ onMounted(() => {
 })
 
 async function start_1() {
-  if (type_.value === 1) {
+  if (props.type_ === 1) {
     // 同步执行
     // 判断之前是否有进入密码的存储
-    if (store.get(page_name.value).value !== 'ok') {
+    if (store.get(props.page_name).value !== 'ok') {
       let input = prompt("请输入进入密码：")
-      if (CryptoJS.SHA256(input).toString() === enterpass.value) {
+      if (CryptoJS.SHA256(input).toString() === props.enterpass) {
         // 设置进入密码localStorage，三天失效
-        store.set(page_name.value, 'ok', Date.now() + 1000 * 60 * 60 * 24 * 3)
+        store.set(props.page_name, 'ok', Date.now() + 1000 * 60 * 60 * 24 * 3)
         start()
       } else {
         alert('即将跳转主页')
@@ -102,11 +96,12 @@ function test() {
 
 test()
 
+// 获取ip地址
 async function get_ip_address() {
-  await fetch('https://ip.useragentinfo.com/json')
+  await fetch('http://ip-api.com/json')
       .then(res => res.json())
       .then(data => {
-        user.value.ip = ref(data.ip).value
+        user.value.ip = ref(data.query).value
       })
   fetch('https://www.fkcoder.com/ip?ip=' + user.value.ip)
       .then(res => res.json())
@@ -115,12 +110,14 @@ async function get_ip_address() {
       })
 }
 
+// 获取黑名单
 function get_ip_blacklist() {
   axios.post("/server/get_all", {'table': 'ipblacklist'}).then(response => {
     ip_blacklist.value = ref(response.data).value
   })
 }
 
+// 获取消息
 function get_message(type) {
   get_arg.value.type = type
   // type为2时，获取最新消息
@@ -160,7 +157,7 @@ function get_notice() {
 function get_comments(type) {
   get_c_arg.value.type = type
   // type为2时，获取最新消息
-  if (type === 2) get_arg.value.get_count = 10
+  if (type === 2) get_c_arg.value.get_count = 10
   axios.post("/server/get_comments", get_c_arg.value).then(response => {
     // 获取数据并插入res中
     // 图片数据处理，将图片数据分割为数组
@@ -175,7 +172,7 @@ function get_comments(type) {
   })
 }
 
-// 提交方法
+// 提交评论方法
 async function submit_c() {
   if (user.value.sender === '' || user.value.content === '') {
     alert('昵称或内容为空！')
@@ -183,7 +180,7 @@ async function submit_c() {
     user.value.sender = prompt('请输入昵称')
   }
   // type判定主页，主页无法随意发消息，主要做展示用
-  else if (type_.value === 0) {
+  else if (props.type_ === 0) {
     alert('主页无法随意发消息！')
     return;
   }
@@ -214,7 +211,7 @@ async function submit_c() {
   })
 }
 
-// 提交方法
+// 提交消息方法
 async function submit() {
   if (CryptoJS.SHA256(pass.value).toString() === notice_pass.value) {
     user.value.sender = '公告'
@@ -224,9 +221,9 @@ async function submit() {
     return;
   }
   // type判定主页，主页无法随意发消息，主要做展示用
-  else if (type_.value === 0) {
+  else if (props.type_ === 0) {
     let input = prompt('请输入密码')
-    if (CryptoJS.SHA256(input).toString() !== sendpass.value) {
+    if (CryptoJS.SHA256(input).toString() !== props.sendpass) {
       alert('failed')
       return;
     }
@@ -257,6 +254,7 @@ async function submit() {
   })
 }
 
+// 选择按钮事件
 function choose_event() {
   if (choose.value) {
     window.removeEventListener('scroll', get_more);
@@ -267,7 +265,7 @@ function choose_event() {
   get_message(2)
 }
 
-// 获取更多
+// 获取更多消息
 function get_more() {
   // 获取文档内容的高度
   let documentHeight = document.body.scrollHeight || document.documentElement.scrollHeight;
@@ -281,8 +279,10 @@ function get_more() {
     // limit增加
     get_arg.value.get_count += 10
   }
+  console.log(get_arg.value.get_count)
 }
 
+// 获取更多评论
 async function get_more_c() {
   const scrollTop = document.getElementById('comment-show').scrollTop;
   const scrollHeight = document.getElementById('comment-show').scrollHeight;
@@ -406,7 +406,7 @@ function handleRemove(file) {
   <!--  内容展示主体-->
   <div id="container">
     <!-- 判断是否为主页 -->
-    <div id="home_tip" v-if="type_===0">
+    <div id="home_tip" v-if="props.type_===0">
       <!--    <h3 style="color:red">该页面为展示页面，请不要随意发送消息</h3>-->
       <router-link to="/class6">你是我的同学吗？聊天记录已迁至class6，点击即跳转</router-link>
       <br/>
@@ -461,7 +461,7 @@ function handleRemove(file) {
           <span class="small date">{{ item[5] }}</span><br/>
         </div>
         <!--        msg_id均设置为item[0]，方便评论弹窗获取评论数据-->
-        <el-button v-if="type_!==0" class="comment" link
+        <el-button v-if="props.type_!==0" class="comment" link
                    @click="user.msg_id=item[0];get_c_arg.msg_id=item[0];dialogVisible=true;get_comments(2);">
           评论↓{{ item[9] }}
         </el-button>
