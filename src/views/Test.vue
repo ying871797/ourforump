@@ -46,7 +46,6 @@ function submitForm() {
       <el-button type="primary" @click="submitForm">Submit</el-button>
     </el-form-item>
   </el-form>
-  <img src="../../../OurForum/static/images/40139ab1.png" alt="a"/>
 </template>
 
 <style scoped>

@@ -32,6 +32,7 @@ let user = ref({
 let upload = ref()
 // 定义控制弹窗显隐的变量
 const dialogVisible = ref(false)
+let dialogWidth = ref()
 
 // 定义变量
 let messageList = ref([])
@@ -54,9 +55,15 @@ let get_c_arg = ref({
   chatroom: props.page_name,
 })
 let ip_blacklist = ref([])
-ref(null);
+
+// 窗口改变大小时改变宽度
+window.onresize = () => {
+  set_dialog_width()
+}
+
 // 进入时执行
 onMounted(() => {
+  set_dialog_width()
   start_1()
   start()
 })
@@ -95,6 +102,17 @@ function test() {
 }
 
 test()
+
+// 弹窗自适应宽度
+function set_dialog_width() {
+  let val = document.body.clientWidth
+  const def = 800 // 默认宽度
+  if (val < def) {
+    dialogWidth.value = '80%'
+  } else {
+    dialogWidth.value = def + 'px'
+  }
+}
 
 // 获取ip地址
 async function get_ip_address() {
@@ -279,7 +297,6 @@ function get_more() {
     // limit增加
     get_arg.value.get_count += 10
   }
-  console.log(get_arg.value.get_count)
 }
 
 // 获取更多评论
@@ -356,7 +373,8 @@ function handleRemove(file) {
 <template>
   <!--  评论展示弹窗-->
   <!--  弹窗关闭时重置get_c_arg.get_count-->
-  <el-dialog destroy-on-close @close="get_c_arg.get_count=10" v-model="dialogVisible" width="80vw">
+  <el-dialog class="dialog" destroy-on-close @close="get_c_arg.get_count=10" v-model="dialogVisible"
+             :width="dialogWidth">
     <nav id="nav">
       <h3>{{ commentList.length }}条评论</h3>
     </nav>
@@ -498,7 +516,7 @@ button {
 #btn_c {
   position: absolute;
   top: 0;
-  right: 1.5rem;
+  left: 10rem;
 }
 
 .input {
@@ -519,7 +537,7 @@ textarea {
 .panel #content_c {
   margin: 0.5rem;
   padding: 0.7rem;
-  width: 80%;
+  width: 65%;
   height: 3rem;
   resize: none;
   display: block;
