@@ -126,6 +126,9 @@ async function get_ip_address() {
       .then(data => {
         user.value.address = ref(data['country'] + ' ' + data['province'] + ' ' + data['city']).value
       })
+
+  // 访问记录插入
+  await axios.post("/server/insert_aqr", {'ip': user.value.ip, 'page_name': props.page_name})
 }
 
 // 获取黑名单
