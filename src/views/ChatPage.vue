@@ -128,7 +128,7 @@ async function get_ip_address() {
       })
 
   // 访问记录插入
-  await axios.post("/server/insert_aqr", {'ip': user.value.ip, 'page_name': props.page_name})
+  await axios.post("/server/record_aqr", {'ip': user.value.ip, 'page_name': props.page_name})
 }
 
 // 获取黑名单

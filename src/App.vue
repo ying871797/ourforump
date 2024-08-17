@@ -1,4 +1,27 @@
 <script setup>
+import {ref, onMounted} from 'vue'
+import axios from "axios";
+
+let aqr = ref(0)
+let ip = ref('')
+
+onMounted(() => {
+  // 获取访问量
+  fetch('/server/get_aqr').then(res => res.json()).then(data => {
+    aqr.value = data
+  })
+  get_ip_address()
+})
+
+async function get_ip_address() {
+  await fetch('http://ip-api.com/json')
+      .then(res => res.json())
+      .then(data => {
+        ip.value = ref(data.query).value
+      })
+  // 访问记录插入
+  await axios.post("/server/insert_aqr")
+}
 </script>
 
 <template>
@@ -6,6 +29,8 @@
     <router-link to="/">
       <img class="logo" src="/R-C.jpg" alt="Vite logo"/>
     </router-link>
+    <!--    展示访问量-->
+    <p style="position:absolute;right:1.5rem;top:1.5rem">访问量：{{ aqr }}</p>
     <!--    <a href="https://vuejs.org/" target="_blank">
           <img src="./assets/vue.svg" class="logo vue" alt="Vue logo" />
         </a>-->

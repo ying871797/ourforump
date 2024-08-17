@@ -8,6 +8,9 @@ import {useRouter} from "vue-router";
 let messageList = ref([])
 let messageShow = ref([])
 let ip = ref('')
+let chatroom = ref('')
+let sendpass = ref('')
+let enter_pass = ref('')
 let activeIndex = ref(-1);
 let enterpass = ref('')
 
@@ -57,6 +60,10 @@ function addBlackIp() {
       alert('添加失败')
     }
   })
+}
+
+function addChatroom(){
+
 }
 
 function handleEdit(index) {
@@ -135,6 +142,13 @@ async function get_more() {
     <el-form-item label="黑名单ip：">
       <el-input v-model="ip" placeholder="请输入黑名单ip"></el-input>
       <el-button type="primary" @click="addBlackIp">添加</el-button>
+    </el-form-item>
+  </div>
+  <div id="add_chatroom">
+    <h3>添加聊天室</h3>
+    <el-form-item label="聊天室名称：">
+      <el-input v-model="chatroom" placeholder="请输入聊天室名称"></el-input>
+      <el-button type="primary" @click="addChatroom">添加</el-button>
     </el-form-item>
   </div>
   <div id="message">
