@@ -27,6 +27,7 @@ let user = ref({
   type: 0,
   ip: "",
   address: "",
+  address_logs: "",
 })
 
 let upload = ref()
@@ -121,14 +122,25 @@ async function get_ip_address() {
       .then(data => {
         user.value.ip = ref(data.query).value
       })
-  fetch('https://www.fkcoder.com/ip?ip=' + user.value.ip)
+  /*fetch('https://www.fkcoder.com/ip?ip=' + user.value.ip)
       .then(res => res.json())
       .then(data => {
         user.value.address = ref(data['country'] + ' ' + data['province'] + ' ' + data['city']).value
+      })*/
+  // 此api也可以获取ip，在此是获取地址
+  await fetch('https://ip.useragentinfo.com/json')
+      .then(res => res.json())
+      .then(data => {
+        user.value.address = ref(data['country'] + ' ' + data['province']).value
+        user.value.address_logs = ref(data['country'] + ' ' + data['province'] + ' ' + data['city']).value
       })
 
   // 访问记录插入
-  await axios.post("/server/record_aqr", {'ip': user.value.ip, 'page_name': props.page_name})
+  await axios.post("/server/record_aqr", {
+    'ip': user.value.ip,
+    'address': user.value.address_logs,
+    'page_name': props.page_name
+  })
 }
 
 // 获取黑名单
@@ -429,6 +441,8 @@ function handleRemove(file) {
     <!-- 判断是否为主页 -->
     <div id="home_tip" v-if="props.type_===0">
       <!--    <h3 style="color:red">该页面为展示页面，请不要随意发送消息</h3>-->
+      <router-link to="/my_senior">高中同学这边请，畅所欲言</router-link>
+      <br/>
       <router-link to="/class6">你是我的同学吗？聊天记录已迁至class6，点击即跳转</router-link>
       <br/>
       <router-link to="/for_visitors">Hello，这里是外来朋友们讨论的地方（无密码）</router-link>
