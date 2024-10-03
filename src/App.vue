@@ -26,8 +26,9 @@ async function get_ip_address() {
 
 <template>
   <div>
-    <router-link to="/">
-      <img class="logo" src="/R-C.jpg" alt="Vite logo"/>
+    <router-link class="cover" to="/">
+<!--      <h1 style="font-weight: bold;font-size: 5rem;font-family: 'Monotype Corsiva'">OurForum</h1>-->
+      <img class="logo" src="/f.png" alt="title"/>
     </router-link>
     <!--    展示访问量-->
     <p style="position:absolute;right:1.5rem;top:1.5rem">访问量：{{ aqr }}</p>
@@ -40,8 +41,8 @@ async function get_ip_address() {
 </template>
 
 <style scoped>
-#nav {
-  padding: 30px;
+h1 {
+  margin: 1rem;
 }
 
 #nav a {
@@ -54,16 +55,16 @@ async function get_ip_address() {
 }
 
 .logo {
-  height: 6em;
-  padding: 1.5em;
+  height: 4.8em;
+  margin:1rem;
   will-change: filter;
   transition: filter 300ms;
-  border-radius: 50%;
 }
 
+/*
 .logo:hover {
-  filter: drop-shadow(0 0 2em goldenrod);
-}
+  filter: drop-shadow(0 0 2em darkgray);
+}*/
 
 /*.logo.vue:hover {
   filter: drop-shadow(0 0 2em #42b883aa);
