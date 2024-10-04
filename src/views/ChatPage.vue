@@ -66,7 +66,7 @@ window.onresize = () => {
 onMounted(() => {
   set_dialog_width()
   start_1()
-  start()
+  // start()
 })
 
 async function start_1() {
@@ -83,7 +83,11 @@ async function start_1() {
         alert('即将跳转主页')
         await route.push('/')
       }
+    } else {
+      start()
     }
+  } else {
+    start()
   }
 }
 
