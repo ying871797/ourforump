@@ -6,6 +6,7 @@ import {useRouter} from "vue-router";
 import {store} from 'xijs';
 import CryptoJS from 'crypto-js'
 import * as imageConversion from 'image-conversion';
+import Fireworks from '../components/Fireworks.vue'
 
 const route = useRouter();
 
@@ -121,10 +122,10 @@ function set_dialog_width() {
 
 // 获取ip地址
 async function get_ip_address() {
-  await fetch('http://ip-api.com/json')
+  await fetch('https://qifu-api.baidubce.com/ip/local/geo/v1/district')
       .then(res => res.json())
       .then(data => {
-        user.value.ip = ref(data.query).value
+        user.value.ip = ref(data.ip).value
       })
   /*fetch('https://www.fkcoder.com/ip?ip=' + user.value.ip)
       .then(res => res.json())
@@ -390,6 +391,7 @@ function handleRemove(file) {
 </script>
 
 <template>
+  <Fireworks></Fireworks>
   <!--  评论展示弹窗-->
   <!--  弹窗关闭时重置get_c_arg.get_count-->
   <el-dialog class="dialog" destroy-on-close @close="get_c_arg.get_count=10" v-model="dialogVisible"
