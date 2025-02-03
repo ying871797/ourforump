@@ -31,7 +31,7 @@ async function get_ip_address() {
       <img class="logo" src="/f.png" alt="title"/>
     </router-link>
     <!--    展示访问量-->
-    <p style="position:absolute;right:1.5rem;top:1.5rem">访问量：{{ aqr }}</p>
+    <p style="position:absolute;right:1rem;top:0.5rem">访问量：{{ aqr }}</p>
     <!--    <a href="https://vuejs.org/" target="_blank">
           <img src="./assets/vue.svg" class="logo vue" alt="Vue logo" />
         </a>-->
@@ -41,10 +41,6 @@ async function get_ip_address() {
 </template>
 
 <style scoped>
-h1 {
-  margin: 1rem;
-}
-
 #nav a {
   font-weight: bold;
   color: #2c3e50;
@@ -55,10 +51,15 @@ h1 {
 }
 
 .logo {
-  height: 4.8em;
-  margin:1rem;
-  will-change: filter;
-  transition: filter 300ms;
+  height: 4rem;
+  margin:0.5rem;
+  /*will-change: filter;
+  transition: filter 300ms;*/
+}
+
+h1 {
+  margin-top: -0.5rem;
+  font-size: 2.5rem;
 }
 
 /*

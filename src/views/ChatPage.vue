@@ -447,11 +447,15 @@ function handleRemove(file) {
     <!-- 判断是否为主页 -->
     <div id="home_tip" v-if="props.type_===0">
       <!--    <h3 style="color:red">该页面为展示页面，请不要随意发送消息</h3>-->
-      <router-link to="/my_senior">高中同学这边请，畅所欲言</router-link>
-      <br/>
-      <router-link to="/class6">你是我的同学吗？聊天记录已迁至class6，点击即跳转</router-link>
-      <br/>
-      <router-link to="/for_visitors">Hello，这里是外来朋友们讨论的地方（无密码）</router-link>
+      <router-link class="link" to="/my_senior">
+        <img class="link-img" src="/senior.png" alt="senior"/>
+      </router-link>
+      <router-link class="link" to="/class6">
+        <img class="link-img" src="/junior.png" alt="junior"/>
+      </router-link>
+      <router-link class="link" to="/for_visitors">
+        <img class="link-img" src="/opentalking.png" alt="open"/>
+      </router-link>
     </div>
     <!--操作板-->
     <div class="panel">
@@ -530,6 +534,17 @@ function handleRemove(file) {
   height: auto;
   position: relative;
   /*grid-row: 1 / 3; //grid-column: 1 / 3;*/
+}
+
+.link {
+  margin-left: 0.5rem;
+  margin-right: 0.5rem;
+}
+
+.link-img {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 0.5rem;
 }
 
 button {
