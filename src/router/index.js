@@ -13,6 +13,17 @@ const router = createRouter({
     routes: routes,
 })
 
+// 百度统计埋点
+router.beforeEach(async (to, from, next) => {
+    if (to.path) {
+        if (window._hmt) {
+            window._hmt.push(['_trackPageview', '/#' + to.fullPath]);
+        }
+    }
+    next();
+});
+
+
 // 全局前置守卫，这里可以加入用户登录判断
 router.beforeEach((to, from, next) => {
     // 继续前进 next()
