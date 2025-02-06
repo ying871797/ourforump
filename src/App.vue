@@ -10,18 +10,8 @@ onMounted(() => {
   fetch('/server/get_aqr').then(res => res.json()).then(data => {
     aqr.value = data
   })
-  get_ip_address()
+  axios.post("/server/insert_aqr")
 })
-
-async function get_ip_address() {
-  await fetch('http://ip-api.com/json')
-      .then(res => res.json())
-      .then(data => {
-        ip.value = ref(data.query).value
-      })
-  // 访问记录插入
-  await axios.post("/server/insert_aqr")
-}
 </script>
 
 <template>
