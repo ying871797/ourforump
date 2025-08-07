@@ -15,13 +15,18 @@ onMounted(() => {
 </script>
 
 <template>
-  <div>
+  <nav id="nav">
+    <router-link to="/">主页</router-link>
+    <router-link to="/about">关于/联系站长</router-link>
+    <hr/>
+  </nav>
+  <div id="top-wrap">
     <router-link class="cover" to="/">
 <!--      <h1 style="font-weight: bold;font-size: 5rem;font-family: 'Monotype Corsiva'">OurForum</h1>-->
       <img class="logo" src="/f.png" alt="title"/>
     </router-link>
     <!--    展示访问量-->
-    <p style="position:absolute;right:1rem;top:0.5rem">访问量：{{ aqr }}</p>
+    <p style="position:absolute;right:1rem;top:0.3rem">访问量：{{ aqr }}</p>
     <!--    <a href="https://vuejs.org/" target="_blank">
           <img src="./assets/vue.svg" class="logo vue" alt="Vue logo" />
         </a>-->
@@ -31,9 +36,18 @@ onMounted(() => {
 </template>
 
 <style scoped>
+#nav {
+  width: 90%;
+  text-align: left;
+  position: absolute;
+  top: 0.5rem;
+}
 #nav a {
+  font-size:1.2rem;
   font-weight: bold;
   color: #2c3e50;
+  margin-left: 1rem;
+  margin-right: 1rem;
 }
 
 #nav a.router-link-exact-active {

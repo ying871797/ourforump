@@ -11,6 +11,14 @@ const routes = [
             title: 'OurForum-管理员'
         },
         component: () => import('../views/Admin.vue')
+    },
+    {
+        path: '/about',
+        name: 'about',
+        meta: {
+            title: '关于'
+        },
+        component: () => import('../views/AboutPage.vue')
     }
     /*{
         path: '/',

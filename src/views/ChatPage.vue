@@ -93,11 +93,12 @@ async function start_1() {
 }
 
 function start() {
-  get_notice_pass()
-  get_ip_blacklist()
-  get_message(2)
-  get_ip_address()
-  window.addEventListener('scroll', get_more);
+  // 初始化聊天室主要数据
+  get_notice_pass()       // 获取公告密码
+  get_ip_blacklist()      // 获取IP黑名单列表
+  get_message(2)          // 获取最新消息（参数2表示初始加载）
+  get_ip_address()         // 获取用户IP地址和地理位置
+  window.addEventListener('scroll', get_more); // 注册滚动加载更多事件
 }
 
 onUnmounted(() => {
@@ -119,7 +120,6 @@ function set_dialog_width() {
     dialogWidth.value = def + 'px'
   }
 }
-
 // 获取ip地址
 async function get_ip_address() {
   await fetch('https://qifu-api.baidubce.com/ip/local/geo/v1/district')
@@ -133,11 +133,11 @@ async function get_ip_address() {
         user.value.address = ref(data['country'] + ' ' + data['province'] + ' ' + data['city']).value
       })*/
   // 此api也可以获取ip，在此是获取地址
-  await fetch('https://ip.useragentinfo.com/json')
+  await fetch(/*'https://ip.useragentinfo.com/json'*/'https://qifu-api.baidubce.com/ip/local/geo/v1/district')
       .then(res => res.json())
       .then(data => {
-        user.value.address = ref(data['country'] + ' ' + data['province']).value
-        user.value.address_logs = ref(data['country'] + ' ' + data['province'] + ' ' + data['city']).value
+        user.value.address = ref(data.data['country'] + ' ' + data.data['prov']).value
+        user.value.address_logs = ref(data.data['country'] + ' ' + data.data['prov'] + ' ' + data.data['city'] + ' ' + data.data['district']).value
       })
 
   // 访问记录插入
@@ -338,7 +338,7 @@ function uploadContractFun(file) {
   //项目要求是大于1MB的图片进行压缩，可根据项目情况自行判断
   if (file.size > 1024 * 1024) {
     // console.log('压缩前', file) // 压缩到400KB
-    imageConversion.compressAccurately(file.raw, 400).then(res => {
+    imageConversion.compressAccurately(file.raw, 500).then(res => {
       // console.log('压缩后', res) // 压缩后是一个blob对象
       return res
     })
