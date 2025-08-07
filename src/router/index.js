@@ -12,16 +12,6 @@ const router = createRouter({
 });
 
 // 百度统计埋点
-router.beforeEach(async (to, from, next) => {
-  if (to.path) {
-    if (window._hmt) {
-      window._hmt.push(["_trackPageview", "/#" + to.fullPath]);
-    }
-  }
-  next();
-});
-
-// 百度统计埋点
 router.afterEach(async (to, from, next) => {
   if (to.path) {
     if (window._hmt) {
@@ -29,6 +19,21 @@ router.afterEach(async (to, from, next) => {
     }
   }
   next();
+});
+
+// 全局前置守卫，这里可以加入用户登录判断
+router.beforeEach((to, from, next) => {
+  // 继续前进 next()
+  // 返回 false 以取消导航
+  next();
+});
+
+// 全局后置钩子，这里可以加入改变页面标题等操作
+router.afterEach((to, from) => {
+  const _title = to.meta.title;
+  if (_title) {
+    window.document.title = _title;
+  }
 });
 
 // 导出默认值
