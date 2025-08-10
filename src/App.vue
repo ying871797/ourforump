@@ -1,9 +1,8 @@
 <script setup>
-import {ref, onMounted} from 'vue'
+import { ref, onMounted } from 'vue'
 import axios from "axios";
 
 let aqr = ref(0)
-let ip = ref('')
 
 onMounted(() => {
   // 获取访问量
@@ -18,21 +17,17 @@ onMounted(() => {
   <nav id="nav">
     <router-link to="/">主页</router-link>
     <router-link to="/about">关于/联系站长</router-link>
-    <hr/>
+    <hr />
   </nav>
   <div id="top-wrap">
     <router-link class="cover" to="/">
-<!--      <h1 style="font-weight: bold;font-size: 5rem;font-family: 'Monotype Corsiva'">OurForum</h1>-->
-      <img class="logo" src="/f.png" alt="title"/>
+      <img class="logo" src="/f.png" alt="title" />
     </router-link>
     <!--    展示访问量-->
     <p style="position:absolute;right:1rem;top:0.3rem">访问量：{{ aqr }}</p>
-    <!--    <a href="https://vuejs.org/" target="_blank">
-          <img src="./assets/vue.svg" class="logo vue" alt="Vue logo" />
-        </a>-->
   </div>
   <h1>Say What You Want to Say</h1>
-  <router-view :key="$route.fullPath"/>
+  <router-view :key="$route.fullPath" />
 </template>
 
 <style scoped>
@@ -42,8 +37,9 @@ onMounted(() => {
   position: absolute;
   top: 0.5rem;
 }
+
 #nav a {
-  font-size:1.2rem;
+  font-size: 1.2rem;
   font-weight: bold;
   color: #2c3e50;
   margin-left: 1rem;
@@ -56,7 +52,7 @@ onMounted(() => {
 
 .logo {
   height: 4rem;
-  margin:0.5rem;
+  margin: 0.5rem;
   /*will-change: filter;
   transition: filter 300ms;*/
 }

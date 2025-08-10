@@ -1,12 +1,18 @@
 <script setup>
-import {onMounted, onUnmounted, ref} from 'vue'
+/** 
+ * @description: 聊天页面
+ * @Author: Xiang Ying
+ * @Date: 2024-02-22 20:00:00
+ */
+import { onMounted, onUnmounted, ref } from 'vue'
 import axios from "axios";
-import {useRouter} from "vue-router";
+import { useRouter } from "vue-router";
 // localStorage设置失效时间
-import {store} from 'xijs';
+import { store } from 'xijs';
 import CryptoJS from 'crypto-js'
 import * as imageConversion from 'image-conversion';
-import Fireworks from '../components/Fireworks.vue'
+import Fireworks from '../components/Fireworks.vue';
+import { MsgType, GetMsgWay, RoomType } from '../utils/utils.js';
 
 const route = useRouter();
 
@@ -18,6 +24,11 @@ const props = defineProps({
   sendpass: String
 })
 
+/**
+ * 关于Type的说明（详细定义见utils.js）：
+ * 本项目中type分为三种：消息类型（MsgType），获取消息的方式（GetMsgType），房间类型（RoomType）
+ */
+
 // submit所用数据
 let user = ref({
   msg_id: 1,
@@ -25,10 +36,10 @@ let user = ref({
   sender: "",
   content: "",
   imgSrc: [],
-  type: 0,
+  type: MsgType.NORMAL,
   ip: "",
-  address: "",
-  address_logs: "",
+  address: "", // 展示在页面上的地址
+  address_logs: "", // 存储到日志的地址
 })
 
 let upload = ref()
@@ -39,17 +50,20 @@ let dialogWidth = ref()
 // 定义变量
 let messageList = ref([])
 let commentList = ref([])
+// 发送密码（用于公告）
 let pass = ref('')
+// 选择开关(仅公告/全部消息)
 let choose = ref(false)
 let isShowPics = ref(false)
 // 公告密码
 let notice_pass = ref('')
-// limit
+// 获取消息参数，一些限制
 let get_arg = ref({
   get_count: 10,
-  type: 0,
+  type: GetMsgWay.NORMAL,
   chatroom: props.page_name,
 })
+// 获取评论参数，一些限制
 let get_c_arg = ref({
   get_count: 10,
   msg_id: 1,
@@ -66,16 +80,17 @@ window.onresize = () => {
 // 进入时执行
 onMounted(() => {
   set_dialog_width()
-  start_1()
-  // start()
+  before_start()
 })
 
-async function start_1() {
-  if (props.type_ === 1) {
+// 进入页面前的操作，检查是否需要密码
+async function before_start() {
+  if (props.type_ === RoomType.PRIVATE) {
     // 同步执行
     // 判断之前是否有进入密码的存储
     if (store.get(props.page_name).value !== 'ok') {
       let input = prompt("请输入进入密码：")
+      // SHA256加密
       if (CryptoJS.SHA256(input).toString() === props.enterpass) {
         // 设置进入密码localStorage，三天失效
         store.set(props.page_name, 'ok', Date.now() + 1000 * 60 * 60 * 24 * 3)
@@ -96,7 +111,7 @@ function start() {
   // 初始化聊天室主要数据
   get_notice_pass()       // 获取公告密码
   get_ip_blacklist()      // 获取IP黑名单列表
-  get_message(2)          // 获取最新消息（参数2表示初始加载）
+  get_message(GetMsgWay.START)          // 获取最新消息（参数START表示初始加载）
   get_ip_address()         // 获取用户IP地址和地理位置
   window.addEventListener('scroll', get_more); // 注册滚动加载更多事件
 }
@@ -123,10 +138,10 @@ function set_dialog_width() {
 // 获取ip地址
 async function get_ip_address() {
   await fetch('https://qifu-api.baidubce.com/ip/local/geo/v1/district')
-      .then(res => res.json())
-      .then(data => {
-        user.value.ip = ref(data.ip).value
-      })
+    .then(res => res.json())
+    .then(data => {
+      user.value.ip = ref(data.ip).value
+    })
   /*fetch('https://www.fkcoder.com/ip?ip=' + user.value.ip)
       .then(res => res.json())
       .then(data => {
@@ -134,11 +149,11 @@ async function get_ip_address() {
       })*/
   // 此api也可以获取ip，在此是获取地址
   await fetch(/*'https://ip.useragentinfo.com/json'*/'https://qifu-api.baidubce.com/ip/local/geo/v1/district')
-      .then(res => res.json())
-      .then(data => {
-        user.value.address = ref(data.data['country'] + ' ' + data.data['prov']).value
-        user.value.address_logs = ref(data.data['country'] + ' ' + data.data['prov'] + ' ' + data.data['city'] + ' ' + data.data['district']).value
-      })
+    .then(res => res.json())
+    .then(data => {
+      user.value.address = ref(data.data['country'] + ' ' + data.data['prov']).value
+      user.value.address_logs = ref(data.data['country'] + ' ' + data.data['prov'] + ' ' + data.data['city'] + ' ' + data.data['district']).value
+    })
 
   // 访问记录插入
   await axios.post("/server/record_aqr", {
@@ -150,59 +165,79 @@ async function get_ip_address() {
 
 // 获取黑名单
 function get_ip_blacklist() {
-  axios.post("/server/get_all", {'table': 'ipblacklist'}).then(response => {
+  axios.post("/server/get_all", { 'table': 'ipblacklist' }).then(response => {
     ip_blacklist.value = ref(response.data).value
   })
 }
 
 // 获取消息
+/*
+response.data[i]:是一个数组，包含以下内容：
+0: 消息ID
+1: 消息类型（0为普通消息，1为公告）
+2: 发送者昵称
+3: 消息内容
+4: 图片数据（字符串形式，逗号分隔）
+5: 发送时间
+6: 发送者IP
+7: 发送者地址
+8: 发送者地址记录
+*/
 function get_message(type) {
   get_arg.value.type = type
   // type为2时，获取最新消息
-  if (type === 2) get_arg.value.get_count = 10
+  if (type === GetMsgWay.START) get_arg.value.get_count = 10
   axios.post("/server/get_message", get_arg.value).then(response => {
     // 获取数据并插入res中
     // 图片数据处理，将图片数据分割为数组
     for (let i = 0; i < response.data.length; i++) {
       response.data[i][4] = String(response.data[i][4]).split(',');
     }
-    if (type === 2) {
+    if (type === GetMsgWay.START) {
       messageList.value = ref(response.data).value
+      console.log('获取消息成功', messageList.value)
+      return
+    }
+    messageList.value = messageList.value.concat(ref(response.data).value)
+    console.log('获取消息成功', messageList.value)
+  })
+}
+
+function get_notice_pass() {
+  axios.post("/server/get_pass", { passtype: 'send_notice' }).then(response => {
+    notice_pass.value = ref(response.data[0][1]).value
+  })
+}
+
+function get_notice(type) {
+  get_arg.value.type = type
+  // type为2时，获取最新消息
+  if (type === GetMsgWay.START) get_arg.value.get_count = 10
+  axios.post("/server/get_notice", get_arg.value).then(response => {
+    // 预处理数据
+    for (let i = 0; i < response.data.length; i++) {
+      response.data[i][4] = String(response.data[i][4]).split(',');
+    }
+    if (type === GetMsgWay.START) {
+      messageList.value = ref(response.data).value
+      console.log('获取消息成功', messageList.value)
       return
     }
     messageList.value = messageList.value.concat(ref(response.data).value)
   })
 }
 
-function get_notice_pass() {
-  axios.post("/server/get_pass", {passtype: 'send_notice'}).then(response => {
-    notice_pass.value = ref(response.data[0][1]).value
-  })
-}
-
-function get_notice() {
-  axios.post("/server/get_notice", get_arg.value).then(response => {
-    // 预处理数据
-    for (let i = 0; i < response.data.length; i++) {
-      response.data[i][4] = String(response.data[i][4]).split(',');
-    }
-    messageList.value = ref(response.data).value
-    // 反转数组，在最上层显示最新数据
-    messageList.value.reverse()
-  })
-}
-
 function get_comments(type) {
   get_c_arg.value.type = type
   // type为2时，获取最新消息
-  if (type === 2) get_c_arg.value.get_count = 10
+  if (type === GetMsgWay.START) get_c_arg.value.get_count = 10
   axios.post("/server/get_comments", get_c_arg.value).then(response => {
     // 获取数据并插入res中
     // 图片数据处理，将图片数据分割为数组
     for (let i = 0; i < response.data.length; i++) {
       response.data[i][4] = String(response.data[i][4]).split(',');
     }
-    if (type === 2) {
+    if (type === GetMsgWay.START) {
       commentList.value = ref(response.data).value
       return
     }
@@ -218,7 +253,7 @@ async function submit_c() {
     user.value.sender = prompt('请输入昵称')
   }
   // type判定主页，主页无法随意发消息，主要做展示用
-  else if (props.type_ === 0) {
+  else if (props.type_ === RoomType.HOME) {
     alert('主页无法随意发消息！')
     return;
   }
@@ -236,15 +271,15 @@ async function submit_c() {
       alert('发送成功');
       // 消息内容清空
       user.value.content = ''
-      user.value.type = 0
+      user.value.type = MsgType.NORMAL
       user.value.imgSrc = []
       upload.value.clearFiles()
-      get_comments(2)
-      get_message(2)
+      get_comments(GetMsgWay.START)
+      get_message(GetMsgWay.START)
     } else {
       alert('发送失败')
-      get_comments(2)
-      get_message(2)
+      get_comments(GetMsgWay.START)
+      get_message(GetMsgWay.START)
     }
   })
 }
@@ -253,13 +288,13 @@ async function submit_c() {
 async function submit() {
   if (CryptoJS.SHA256(pass.value).toString() === notice_pass.value) {
     user.value.sender = '公告'
-    user.value.type = 1
+    user.value.type = MsgType.NOTICE
   } else if (user.value.sender === '' || user.value.content === '') {
     alert('昵称或内容为空！')
     return;
   }
   // type判定主页，主页无法随意发消息，主要做展示用
-  else if (props.type_ === 0) {
+  else if (props.type_ === RoomType.HOME) {
     let input = prompt('请输入密码')
     if (CryptoJS.SHA256(input).toString() !== props.sendpass) {
       alert('failed')
@@ -281,13 +316,13 @@ async function submit() {
       // 消息内容清空
       user.value.content = ''
       pass.value = ''
-      user.value.type = 0
+      user.value.type = MsgType.NORMAL
       user.value.imgSrc = []
       upload.value.clearFiles()
-      get_message(2)
+      get_message(GetMsgWay.START)
     } else {
       alert('发送失败')
-      get_message(2)
+      get_message(GetMsgWay.START)
     }
   })
 }
@@ -295,12 +330,11 @@ async function submit() {
 // 选择按钮事件
 function choose_event() {
   if (choose.value) {
-    window.removeEventListener('scroll', get_more);
-    get_notice()
+    get_notice(GetMsgWay.START)
     return
   }
   window.addEventListener('scroll', get_more);
-  get_message(2)
+  get_message(GetMsgWay.START)
 }
 
 // 获取更多消息
@@ -313,7 +347,12 @@ function get_more() {
   let scrollTop = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop;
   // 判断是否滚动到了页面底部
   if (documentHeight - windowHeight - scrollTop - 1 <= 0) {
-    get_message(1)
+    if (choose.value) {
+      get_notice(GetMsgWay.MORE)
+      get_arg.value.get_count += 10
+      return
+    }
+    get_message(GetMsgWay.MORE)
     // limit增加
     get_arg.value.get_count += 10
   }
@@ -326,8 +365,8 @@ async function get_more_c() {
   const clientHeight = document.getElementById('comment-show').clientHeight;
   // 判断是否滚动到了页面底部
   if (scrollTop + clientHeight + 1 >= scrollHeight) {
-    get_c_arg.value.type = 4
-    get_comments(1)
+    // get_c_arg.value.type = 4
+    get_comments(GetMsgWay.MORE)
     // limit增加
     get_c_arg.value.get_count += 10
   }
@@ -394,44 +433,34 @@ function handleRemove(file) {
   <Fireworks></Fireworks>
   <!--  评论展示弹窗-->
   <!--  弹窗关闭时重置get_c_arg.get_count-->
-  <el-dialog class="dialog" destroy-on-close @close="get_c_arg.get_count=10" v-model="dialogVisible"
-             :width="dialogWidth">
+  <el-dialog class="dialog" destroy-on-close @close="get_c_arg.get_count = 10" v-model="dialogVisible"
+    :width="dialogWidth">
     <nav id="nav">
       <h3>{{ commentList.length }}条评论</h3>
     </nav>
     <div id="comment-show" @scroll="get_more_c">
-      <div class="comment-item" v-for="(item,index) in commentList" :key="index">
-        <hr/>
+      <div class="comment-item" v-for="(item, index) in commentList" :key="index">
+        <hr />
         <span class="sender">{{ item[2] }}:</span>
         <span class="ip">ip: {{ item[7] }}</span>
-        <p v-if="item[6]===1" style="color:red" class="content">{{ item[3] }}</p>
+        <p v-if="item[6] === 1" style="color:red" class="content">{{ item[3] }}</p>
         <p v-else class="content">{{ item[3] }}</p>
-        <el-image @click="isShowPics=true" class="msgImg" v-for="(img,index) in item[4]" :key="index"
-                  v-if="item[4][0]!=='null' && item[4][0]!==''"
-                  :src="'/src/assets/upload/'+img"
-                  alt="图片"></el-image>
+        <el-image @click="isShowPics = true" class="msgImg" v-for="(img, index) in item[4]" :key="index"
+          v-if="item[4][0] !== 'null' && item[4][0] !== ''" :src="'/src/assets/upload/' + img" alt="图片"></el-image>
         <!--        <el-image-viewer :src-list="item[4]" :z-index="1000"></el-image-viewer>-->
         <div class="otherInfo">
           <span class="small address">地址: {{ item[8] }}</span>
-          <span class="small date">{{ item[5] }}</span><br/>
+          <span class="small date">{{ item[5] }}</span><br />
         </div>
       </div>
     </div>
-    <hr/>
+    <hr />
     <!--操作板-->
     <div class="panel">
       <el-form>
         <el-form-item label="图片：">
-          <el-upload
-              class="upload-demo"
-              ref="upload"
-              action="#"
-              :auto-upload="false"
-              :on-change="handleChange"
-              :on-remove="handleRemove"
-              :before-upload="uploadContractFun"
-              accept="image/*"
-              :multiple="true">
+          <el-upload class="upload-demo" ref="upload" action="#" :auto-upload="false" :on-change="handleChange"
+            :on-remove="handleRemove" :before-upload="uploadContractFun" accept="image/*" :multiple="true">
             <el-button slot="trigger" type="primary">上传</el-button>
           </el-upload>
         </el-form-item>
@@ -445,16 +474,16 @@ function handleRemove(file) {
   <!--  内容展示主体-->
   <div id="container">
     <!-- 判断是否为主页 -->
-    <div id="home_tip" v-if="props.type_===0">
+    <div id="home_tip" v-if="props.type_ === 0">
       <!--    <h3 style="color:red">该页面为展示页面，请不要随意发送消息</h3>-->
       <router-link class="link" to="/my_senior">
-        <img class="link-img" src="/senior.png" alt="senior"/>
+        <img class="link-img" src="/senior.png" alt="senior" />
       </router-link>
       <router-link class="link" to="/class6">
-        <img class="link-img" src="/junior.png" alt="junior"/>
+        <img class="link-img" src="/junior.png" alt="junior" />
       </router-link>
       <router-link class="link" to="/for_visitors">
-        <img class="link-img" src="/opentalking.png" alt="open"/>
+        <img class="link-img" src="/opentalking.png" alt="open" />
       </router-link>
     </div>
     <!--操作板-->
@@ -464,20 +493,11 @@ function handleRemove(file) {
           <el-input v-model="user.sender" id="sender" name="name" placeholder="请输入昵称" type="text"></el-input>
         </el-form-item>
         <el-form-item class="input" label="公告密码：">
-          <el-input v-model="pass" id="pass" name="pass" placeholder="发布公告需要密码，其他不需要"
-                    type="password"></el-input>
+          <el-input v-model="pass" id="pass" name="pass" placeholder="发布公告需要密码，其他不需要" type="password"></el-input>
         </el-form-item>
         <el-form-item label="图片：">
-          <el-upload
-              class="upload-demo"
-              ref="upload"
-              action="#"
-              :auto-upload="false"
-              :on-change="handleChange"
-              :on-remove="handleRemove"
-              :before-upload="uploadContractFun"
-              accept="image/*"
-              :multiple="true">
+          <el-upload class="upload-demo" ref="upload" action="#" :auto-upload="false" :on-change="handleChange"
+            :on-remove="handleRemove" :before-upload="uploadContractFun" accept="image/*" :multiple="true">
             <el-button slot="trigger" type="primary">点击上传图片</el-button>
           </el-upload>
         </el-form-item>
@@ -488,26 +508,32 @@ function handleRemove(file) {
       <el-switch @change="choose_event" v-model="choose" active-text="仅公告" inactive-text="全部消息">
       </el-switch>
     </div>
-    <!--  主体-->
+    <!-- 主体消息展示区域 -->
     <div id="wrap">
-      <!--    消息展示-->
-      <div class="item" v-for="(item,index) in messageList" :key="index">
+      <!-- 使用v-for循环遍历消息列表，每条消息作为一个item展示 -->
+      <div class="item" v-for="(item, index) in messageList" :key="index">
+        <!-- 发送者昵称 -->
         <span class="sender">{{ item[2] }}:</span>
+        <!-- IP地址信息 -->
         <span class="ip">ip: {{ item[7] }}</span>
-        <p v-if="item[6]===1" style="color:red" class="content">{{ item[3] }}</p>
+        <!-- 消息内容，如果是公告(type=1)则显示为红色 -->
+        <p v-if="item[6] === 1" style="color:red" class="content">{{ item[3] }}</p>
         <p v-else class="content">{{ item[3] }}</p>
-        <el-image @click="isShowPics=true" class="msgImg" v-for="(img,index) in item[4]" :key="index"
-                  v-if="item[4][0]!=='null' && item[4][0]!==''"
-                  :src="'/src/assets/upload/'+img"
-                  alt="图片"></el-image>
-        <!--        <el-image-viewer :src-list="item[4]" :z-index="1000"></el-image-viewer>-->
+        <!-- 图片展示区域，点击可查看大图 -->
+        <el-image @click="isShowPics = true" class="msgImg" v-for="(img, index) in item[4]" :key="index"
+          v-if="item[4][0] !== 'null' && item[4][0] !== ''" :src="'/src/assets/upload/' + img" alt="图片"></el-image>
+        <!-- 其他信息区域，包含地址和时间 -->
         <div class="otherInfo">
+          <!-- 发送者地址信息 -->
           <span class="small address">地址: {{ item[8] }}</span>
-          <span class="small date">{{ item[5] }}</span><br/>
+          <!-- 发送时间 -->
+          <span class="small date">{{ item[5] }}</span><br />
         </div>
-        <!--        msg_id均设置为item[0]，方便评论弹窗获取评论数据-->
-        <el-button v-if="props.type_!==0" class="comment" link
-                   @click="user.msg_id=item[0];get_c_arg.msg_id=item[0];dialogVisible=true;get_comments(2);">
+        <!-- 评论按钮，仅在非主页(type_ !== 0)时显示 -->
+        <!-- 点击评论按钮时，设置msg_id并打开评论弹窗 -->
+        <!-- msg_id均设置为item[0]，方便评论弹窗获取评论数据-->
+        <el-button v-if="props.type_ !== 0" class="comment" link
+          @click="user.msg_id = item[0]; get_c_arg.msg_id = item[0]; dialogVisible = true; get_comments(GetMsgWay.START);">
           评论↓{{ item[9] }}
         </el-button>
       </div>
@@ -520,7 +546,7 @@ function handleRemove(file) {
   width: auto;
   height: auto;
   display: grid;
-  grid-template-columns: repeat( auto-fit, minmax(20rem, 1fr) );
+  grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
   grid-auto-flow: row dense;
 }
 
