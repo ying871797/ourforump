@@ -17,6 +17,7 @@ onMounted(() => {
   <nav id="nav">
     <router-link to="/">主页</router-link>
     <router-link to="/about">关于/联系站长</router-link>
+    <router-link to="/products">产品</router-link>
     <hr />
   </nav>
   <div id="top-wrap">
@@ -24,7 +25,7 @@ onMounted(() => {
       <img class="logo" src="/f.png" alt="title" />
     </router-link>
     <!--    展示访问量-->
-    <p style="position:absolute;right:1rem;top:0.3rem">访问量：{{ aqr }}</p>
+    <p style="position:absolute;right:0.5rem;top:-0.5rem">访问量：{{ aqr }}</p>
   </div>
   <h1>Say What You Want to Say</h1>
   <router-view :key="$route.fullPath" />
@@ -35,15 +36,16 @@ onMounted(() => {
   width: 90%;
   text-align: left;
   position: absolute;
-  top: 0.5rem;
+  left: 1rem;
+  top: 0.3rem;
 }
 
 #nav a {
   font-size: 1.2rem;
   font-weight: bold;
   color: #2c3e50;
-  margin-left: 1rem;
-  margin-right: 1rem;
+  margin-left: 0.2rem;
+  margin-right: 0.2rem;
 }
 
 #nav a.router-link-exact-active {

@@ -19,6 +19,14 @@ const routes = [
             title: '关于'
         },
         component: () => import('../views/AboutPage.vue')
+    },
+    {
+        path: '/products',
+        name: 'products',
+        meta: {
+            title: '系列产品',
+        },
+        component: () => import('../views/ProductsShowPage.vue')
     }
     /*{
         path: '/',
