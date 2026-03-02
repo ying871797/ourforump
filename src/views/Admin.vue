@@ -1,9 +1,9 @@
 <script setup>
-import {onMounted, ref} from 'vue'
+import { onMounted, ref } from 'vue'
 import axios from "axios";
-import {store} from "xijs";
-import CryptoJS from "crypto-js";
-import {useRouter} from "vue-router";
+import { store } from "xijs";
+import { useRouter } from "vue-router";
+import { verify_pass, verify_blacklist } from '../utils/verify.js';
 
 let messageList = ref([])
 let messageShow = ref([])
@@ -24,19 +24,17 @@ let get_arg = ref({
 })
 
 onMounted(() => {
-  start()
+  // start()
 })
 
+// TODO: 有待修复
 async function start() {
-  await get_enter_pass()
-  await fetchMessageList()
-  if (store.get('admin').value !== 'ok') {
+  if (!adminInfo || store.get('admin').value !== 'ok') {
     let input = prompt("请输入进入密码：")
-    console.log(enterpass.value)
-    console.log(CryptoJS.SHA256(input).toString() === enterpass.value)
-    if (CryptoJS.SHA256(input).toString() === enterpass.value) {
+    if (await verify_pass(input)) {
       // 设置进入密码localStorage，三天失效
       store.set('admin', 'ok', Date.now() + 1000 * 60 * 60 * 24 * 3)
+      await fetchMessageList()
     } else {
       alert('即将跳转主页')
       await route.push('/')
@@ -62,7 +60,7 @@ function addBlackIp() {
   })
 }
 
-function addChatroom(){
+function addChatroom() {
 
 }
 
@@ -71,7 +69,7 @@ function handleEdit(index) {
 }
 
 async function handleSave(index) {
-  await axios.post("/server/update_message", {'data': messageShow.value[index]}).then(response => {
+  await axios.post("/server/update_message", { 'data': messageShow.value[index] }).then(response => {
     if (response.data === 'ok') {
       alert('保存成功')
     } else {
@@ -82,7 +80,7 @@ async function handleSave(index) {
 }
 
 async function handleDelete(index) {
-  await axios.post("/server/delete_message", {'data': messageShow.value[index]}).then(response => {
+  await axios.post("/server/delete_message", { 'data': messageShow.value[index] }).then(response => {
     if (response.data === 'ok') {
       alert('删除成功')
     } else {
@@ -93,43 +91,33 @@ async function handleDelete(index) {
   activeIndex.value = -1;
 }
 
-async function get_enter_pass() {
-  await axios.post("/server/get_pass", {passtype: 'admin_pass'}).then(response => {
-    enterpass.value = ref(response.data[0][1]).value
-  })
-}
-
 async function fetchMessageList() {
+  console.log('fetchMessageList')
   await axios.post("/server/get_message", get_arg.value).then(response => {
-    // res.value = ref(response["data"]).value
+    let data = response.data
     // 获取数据并插入res中
     // 图片数据处理，将图片数据分割为数组
-    for (let i = 0; i < response.data.length; i++) {
-      messageShow.value.push({
-        id: response.data[i][0],
-        chatroom: response.data[i][1],
-        sender: response.data[i][2],
-        content: response.data[i][3],
-        imgSrc: response.data[i][4],
-        datetime: response.data[i][5],
-        type: response.data[i][6],
-        ip: response.data[i][7],
-        address: response.data[i][8],
-      })
+    for (let i = 0; i < data.length; i++) {
+      console.log(data[i])
+      messageShow.value.push(data[i])
     }
-    messageList.value = messageList.value.concat(ref(response.data).value)
+    messageList.value = messageList.value.concat(data)
   })
 }
 
-
+// 加载中 状态锁
+let isLoading = ref(false); // 定义锁
 async function get_more() {
+  if (isLoading.value) return; // 如果正在加载，直接拦截请求
   const scrollTop = document.getElementById('message').scrollTop;
   const scrollHeight = document.getElementById('message').scrollHeight;
   const clientHeight = document.getElementById('message').clientHeight;
   // 判断是否滚动到了页面底部
   if (scrollTop + clientHeight + 1 >= scrollHeight) {
+    isLoading.value = true;
     get_arg.value.type = 4
     await fetchMessageList()
+    isLoading.value = false; // 请求结束后解锁
     // limit增加
     get_arg.value.get_count += 10
   }

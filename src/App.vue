@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+/* import { ref, onMounted } from 'vue'
 import axios from "axios";
 
 let aqr = ref(0)
@@ -10,22 +10,23 @@ onMounted(() => {
     aqr.value = data
   })
   axios.post("/server/insert_aqr")
-})
+}) */
 </script>
 
 <template>
   <nav id="nav">
-    <router-link to="/">主页</router-link>
-    <router-link to="/about">关于/联系站长</router-link>
-    <router-link to="/products">产品</router-link>
-    <hr />
+    <div id="nav-show">
+      <router-link to="/">主页</router-link>
+      <router-link to="/about">关于/联系站长</router-link>
+      <router-link to="/products">产品</router-link>
+    </div>
   </nav>
   <div id="top-wrap">
     <router-link class="cover" to="/">
       <img class="logo" src="/f.png" alt="title" />
     </router-link>
     <!--    展示访问量-->
-    <p style="position:absolute;right:0.5rem;top:-0.5rem">访问量：{{ aqr }}</p>
+    <!-- <p style="position:absolute;right:0.5rem;top:-0.5rem">访问量：{{ aqr }}</p> -->
   </div>
   <h1>Say What You Want to Say</h1>
   <router-view :key="$route.fullPath" />
@@ -33,19 +34,26 @@ onMounted(() => {
 
 <style scoped>
 #nav {
-  width: 90%;
+  width: 100%;
   text-align: left;
+  border-bottom: 0.1rem solid #ccc;
+  border-radius: 0.5rem;
   position: absolute;
-  left: 1rem;
+  left: 0rem;
   top: 0.3rem;
+}
+
+#nav-show {
+  margin-left: 0.5rem;
+  margin-bottom: 0.5rem;
 }
 
 #nav a {
   font-size: 1.2rem;
   font-weight: bold;
   color: #2c3e50;
-  margin-left: 0.2rem;
-  margin-right: 0.2rem;
+  margin-left: 1rem;
+  margin-right: 2rem;
 }
 
 #nav a.router-link-exact-active {

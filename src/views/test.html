@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vue3 响应式导航栏</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <style>
+        /* 基础样式 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* REM 基准设置 - 基于设备宽度动态计算 */
+        html {
+            font-size: 16px; /* 桌面端基准 */
+        }
+
+        @media screen and (max-width: 768px) {
+            html {
+                font-size: calc(100vw / 20); /* 移动端：每0.2rem = 1vw */
+            }
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #f0f5ff 0%, #e6f0ff 100%);
+            color: #2c3e50;
+            line-height: 1.6;
+        }
+
+        /* 导航栏容器 - 玻璃拟态效果 */
+        .navbar {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            position: relative;
+            z-index: 1000;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.5);
+        }
+
+        .nav-container {
+            max-width: 75rem; /* 1200px */
+            margin: 0 auto;
+            padding: 0 1.25rem; /* 20px */
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 4.375rem; /* 70px */
+        }
+
+        /* Logo样式 */
+        .logo {
+            font-size: 1.5rem; /* 24px */
+            font-weight: 700;
+            color: #2563eb;
+            text-decoration: none;
+            letter-spacing: -0.5px;
+        }
+
+        /* 桌面端导航菜单 */
+        .nav-menu {
+            display: flex;
+            list-style: none;
+            align-items: center;
+            gap: 0.5rem; /* 8px */
+        }
+
+        .nav-item {
+            position: relative;
+        }
+
+        .nav-link {
+            display: block;
+            padding: 0.75rem 1.25rem; /* 12px 20px */
+            color: #4b5563;
+            text-decoration: none;
+            font-size: 1rem; /* 16px */
+            font-weight: 500;
+            border-radius: 0.5rem; /* 8px */
+            transition: all 0.3s ease;
+        }
+
+        .nav-link:hover {
+            background: rgba(37, 99, 235, 0.08);
+            color: #2563eb;
+        }
+
+        .nav-link.active {
+            background: rgba(37, 99, 235, 0.12);
+            color: #2563eb;
+            position: relative;
+        }
+
+        .nav-link.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 1.5rem; /* 24px */
+            height: 0.1875rem; /* 3px */
+            background: #2563eb;
+            border-radius: 0.09375rem; /* 1.5px */
+        }
+
+        /* 移动端菜单按钮 */
+        .menu-toggle {
+            display: none;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 0.375rem; /* 6px */
+            transition: background 0.3s ease;
+        }
+
+        .menu-toggle:hover {
+            background: rgba(0, 0, 0, 0.05);
+        }
+
+        .hamburger {
+            display: block;
+            width: 1.5625rem; /* 25px */
+            height: 0.125rem; /* 2px */
+            background-color: #2563eb;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .hamburger::before,
+        .hamburger::after {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-color: #2563eb;
+            left: 0;
+            transition: all 0.3s ease;
+        }
+
+        .hamburger::before {
+            top: -0.5rem; /* -8px */
+        }
+
+        .hamburger::after {
+            bottom: -0.5rem; /* -8px */
+        }
+
+        /* 菜单打开时的动画 */
+        .menu-toggle.active .hamburger {
+            background-color: transparent;
+        }
+
+        .menu-toggle.active .hamburger::before {
+            top: 0;
+            transform: rotate(45deg);
+        }
+
+        .menu-toggle.active .hamburger::after {
+            bottom: 0;
+            transform: rotate(-45deg);
+        }
+
+        /* 遮罩层 */
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            z-index: 998;
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+        }
+
+        .overlay.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* 响应式设计 */
+        @media screen and (max-width: 768px) {
+            .nav-container {
+                height: 3.75rem; /* 60px */
+            }
+
+            .menu-toggle {
+                display: block;
+            }
+
+            .nav-menu {
+                position: fixed;
+                top: 0;
+                right: -100%;
+                width: 70%;
+                max-width: 18.75rem; /* 300px */
+                height: 100vh;
+                background: rgba(255, 255, 255, 0.95);
+                backdrop-filter: blur(12px);
+                -webkit-backdrop-filter: blur(12px);
+                flex-direction: column;
+                padding: 4rem 0 2rem;
+                transition: right 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+                box-shadow: -5px 0 25px rgba(0, 0, 0, 0.1);
+                z-index: 999;
+                gap: 0;
+            }
+
+            .nav-menu.active {
+                right: 0;
+            }
+
+            .nav-item {
+                width: 100%;
+            }
+
+            .nav-link {
+                padding: 1.125rem 1.875rem; /* 18px 30px */
+                font-size: 1.125rem; /* 18px */
+                border-radius: 0;
+                color: #1f2937;
+                position: relative;
+            }
+
+            .nav-link:hover {
+                background: rgba(37, 99, 235, 0.05);
+            }
+
+            .nav-link.active {
+                background: rgba(37, 99, 235, 0.1);
+            }
+
+            .nav-link.active::after {
+                left: 0;
+                top: 50%;
+                transform: translateY(-50%);
+                width: 0.25rem; /* 4px */
+                height: 60%;
+                border-radius: 0 0.25rem 0.25rem 0;
+            }
+
+            /* 防止背景滚动 */
+            body.menu-open {
+                overflow: hidden;
+            }
+        }
+
+        /* 内容区域 */
+        .content {
+            max-width: 75rem; /* 1200px */
+            margin: 2.5rem auto; /* 40px */
+            padding: 0 1.25rem; /* 20px */
+        }
+
+        .content h1 {
+            font-size: 2rem; /* 32px */
+            margin-bottom: 1.25rem; /* 20px */
+            color: #1f2937;
+            font-weight: 700;
+        }
+
+        .content p {
+            font-size: 1rem; /* 16px */
+            line-height: 1.7;
+            color: #4b5563;
+            margin-bottom: 0.9375rem; /* 15px */
+        }
+
+        /* 移动端适配 */
+        @media screen and (max-width: 768px) {
+            .content {
+                margin: 1.875rem auto; /* 30px */
+            }
+            
+            .content h1 {
+                font-size: 1.75rem; /* 28px */
+            }
+            
+            .content p {
+                font-size: 1rem; /* 16px */
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <!-- 导航栏 -->
+        <nav class="navbar">
+            <div class="nav-container">
+                <a href="#" class="logo">MyWebsite</a>
+                
+                <!-- 移动端菜单按钮 -->
+                <button 
+                    class="menu-toggle" 
+                    :class="{ active: isMenuOpen }"
+                    @click="toggleMenu"
+                    aria-label="切换菜单"
+                >
+                    <span class="hamburger"></span>
+                </button>
+
+                <!-- 导航菜单 -->
+                <ul class="nav-menu" :class="{ active: isMenuOpen }">
+                    <li class="nav-item">
+                        <a 
+                            href="#" 
+                            class="nav-link" 
+                            :class="{ active: activeIndex === 0 }"
+                            @click="setActive(0)"
+                        >
+                            首页
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a 
+                            href="#" 
+                            class="nav-link" 
+                            :class="{ active: activeIndex === 1 }"
+                            @click="setActive(1)"
+                        >
+                            产品
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a 
+                            href="#" 
+                            class="nav-link" 
+                            :class="{ active: activeIndex === 2 }"
+                            @click="setActive(2)"
+                        >
+                            服务
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a 
+                            href="#" 
+                            class="nav-link" 
+                            :class="{ active: activeIndex === 3 }"
+                            @click="setActive(3)"
+                        >
+                            关于我们
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a 
+                            href="#" 
+                            class="nav-link" 
+                            :class="{ active: activeIndex === 4 }"
+                            @click="setActive(4)"
+                        >
+                            联系我们
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+
+        <!-- 遮罩层 -->
+        <div 
+            class="overlay" 
+            :class="{ active: isMenuOpen }"
+            @click="closeMenu"
+        ></div>
+
+        <!-- 页面内容 -->
+        <div class="content">
+            <h1>响应式导航栏示例</h1>
+            <p>这是一个使用 Vue3 和 REM 实现的响应式导航栏。</p>
+            <p>在电脑端（>768px）显示横向导航栏，在移动端（≤768px）显示菜单按钮，点击后弹出竖直导航栏。</p>
+            <p>当前激活的菜单项：{{ menuItems[activeIndex] }}</p>
+            <p>菜单状态：{{ isMenuOpen ? '打开' : '关闭' }}</p>
+            <p>窗口宽度：{{ windowWidth }}px</p>
+        </div>
+    </div>
+
+    <script>
+        const { createApp } = Vue;
+
+        createApp({
+            data() {
+                return {
+                    isMenuOpen: false,
+                    activeIndex: 0,
+                    windowWidth: window.innerWidth,
+                    menuItems: ['首页', '产品', '服务', '关于我们', '联系我们']
+                }
+            },
+            mounted() {
+                // 监听窗口大小变化
+                window.addEventListener('resize', this.handleResize);
+                
+                // 监听媒体查询变化
+                this.mediaQuery = window.matchMedia('(max-width: 768px)');
+                this.mediaQuery.addListener(this.handleMediaQueryChange);
+                
+                // 初始化
+                this.handleMediaQueryChange(this.mediaQuery);
+            },
+            beforeUnmount() {
+                // 清理事件监听
+                window.removeEventListener('resize', this.handleResize);
+                this.mediaQuery.removeListener(this.handleMediaQueryChange);
+            },
+            methods: {
+                toggleMenu() {
+                    this.isMenuOpen = !this.isMenuOpen;
+                    this.toggleBodyScroll();
+                },
+                closeMenu() {
+                    this.isMenuOpen = false;
+                    this.toggleBodyScroll();
+                },
+                setActive(index) {
+                    this.activeIndex = index;
+                    // 移动端点击菜单项后关闭菜单
+                    if (this.windowWidth <= 768) {
+                        this.closeMenu();
+                    }
+                },
+                toggleBodyScroll() {
+                    // 防止背景滚动
+                    if (this.isMenuOpen) {
+                        document.body.classList.add('menu-open');
+                    } else {
+                        document.body.classList.remove('menu-open');
+                    }
+                },
+                handleResize() {
+                    this.windowWidth = window.innerWidth;
+                    // 如果窗口大小超过768px，强制关闭移动端菜单
+                    if (this.windowWidth > 768 && this.isMenuOpen) {
+                        this.closeMenu();
+                    }
+                },
+                handleMediaQueryChange(e) {
+                    // 当媒体查询状态改变时的处理
+                    if (e.matches && this.isMenuOpen) {
+                        // 如果切换到移动端且菜单是打开的，保持打开状态
+                    } else if (!e.matches && this.isMenuOpen) {
+                        // 如果切换到桌面端且菜单是打开的，关闭菜单
+                        this.closeMenu();
+                    }
+                }
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>

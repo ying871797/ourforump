@@ -19,7 +19,7 @@ let data = ref([
             <p>Chat87 叭柒是一款基于Flutter的即时通讯应用，它具有简洁、易用、高效的特点。</p>
             <a href="https://ying871797.lanzouw.com/imxtA33mamgh">Windows版</a>
             <br/>
-            <a href="https://ying871797.lanzouw.com/iYutA33mamvc">安卓版 密码:5jss</a>
+            <a href="https://ying871797.lanzouw.com/iE98d33mcbyb">安卓版</a>
         </div>
     </div>
 </template>

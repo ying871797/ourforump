@@ -44,25 +44,14 @@ const loadDynamicRoutes = async () => {
 
         // 添加动态路由
         routesData.forEach(item => {
-            // 解构数据项，添加注释说明每个字段
-            const [
-                path,       // 路由路径 (item[0])
-                name,       // 路由名称 (item[1])
-                type,       // 页面类型 (item[2])
-                sendpass,   // 发送密码 (item[3])
-                enterpass   // 进入密码 (item[4])
-            ] = item
-
-            if (Number(type) !== 3) {
+            if (Number(item.type) !== 3) {
                 router.addRoute({
-                    path,
-                    name,
-                    meta: {title: name},
+                    path:item.path,
+                    name:item.name,
+                    meta: {title: item.name},
                     props: {
-                        page_name: name,
-                        type_: type,
-                        sendpass,
-                        enterpass
+                        page_name: item.name,
+                        type_: item.type,
                     },
                     // 使用动态导入确保代码分割
                     component: () => import('./views/ChatPage.vue')
